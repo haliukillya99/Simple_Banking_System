@@ -27,8 +27,8 @@ public class Main {
                 accountGeneration(amountAccount++);
                 externalMenu();
 
-            /*case "2":
-                internalMenu();*/
+            case "2":
+                logIn();
 
             case "0":
                 exit();
@@ -38,8 +38,63 @@ public class Main {
         }
     }
 
+    static void logIn() {
+        getUserData();
+    }
+
+    static void getUserData() {
+        System.out.println("Enter your card number:");
+        String userCard = scanner.nextLine();
+
+        System.out.println("Enter your PIN:");
+        String userPin = scanner.nextLine();
+
+        userVerification(userCard, userPin);
+    }
+
+    static void userVerification(String currentCard, String currentPin) {
+        boolean correct = false;
+        for (int i = 0; i < Main.amountAccount; i++) {
+            if (Main.table[i].cardNumber.equals(currentCard) && Main.table[i].cardPin.equals(currentPin)) {
+                User user = new User(i, Main.table[i].cardNumber, Main.table[i].cardPin, Main.table[i].balance);
+                correct = true;
+                System.out.println("You have successfully logged in!");
+                internalMenu(user.id, user.userCard, user.userPin, user.userBalance);
+                //break;
+            }
+        }
+        if (!correct) {
+            System.out.println("Wrong card number or PIN!");
+            logIn();
+        }
+    }
+
+    static void internalMenu(int id, String userCard, String userPin, double userBalance) {
+
+        System.out.println("1. Balance\n" +
+                "2. Log out\n" +
+                "0. Exit");
+        action = scanner.nextLine();
+
+        switch (action) {
+            case "1":
+                System.out.println("Balance: " + userBalance);
+                internalMenu(id, userCard, userPin, userBalance);
+
+            case "2":
+                externalMenu();
+
+            case "0":
+                exit();
+
+            default:
+                ;
+        }
+    }
+
     static void accountGeneration(int index) {
         table[index] = new Account();
+        System.out.println(table[index].info(index));
     }
 
     static void exit(){
@@ -52,6 +107,15 @@ class Account {
     String cardNumber = cardNumberGeneration();
     String cardPin = cardPinGeneration();
     double balance = 0;
+
+    String info(int i) {
+        String s = "Your card has been created\n"
+                            + "Your card number:\n"
+                            + this.cardNumber
+                            + "\nYour card PIN:\n"
+                            + this.cardPin;
+        return s;
+    }
 
     String cardNumberGeneration() {
         String IIN = "400000";
@@ -79,6 +143,7 @@ class Account {
         for (int i = 0; i < Main.amountAccount - 1; i++) {
             if (Main.table[i].cardNumber.equals(suspect)) {
                 unique = false;
+                break;
             }
         }
         return  unique;
@@ -107,5 +172,19 @@ class Account {
             tempZero += 0;
         }
         return tempZero;
+    }
+}
+
+class User {
+    int id;
+    String userCard;
+    String userPin;
+    double userBalance;
+
+    User(int id, String userCard, String userPin, double userBalance) {
+        this.id = id;
+        this.userCard = userCard;
+        this.userPin = userPin;
+        this.userBalance = userBalance;
     }
 }

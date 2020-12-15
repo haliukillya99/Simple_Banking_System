@@ -9,7 +9,7 @@ public class Main {
     public static Scanner scanner = new Scanner(System.in);
     static String action;
     static int amountAccount = 0;
-    static Account[] table = new Account[Integer.MAX_VALUE / 4];
+    static Account[] table = new Account[10];
 
     public static void main(String[] args) {
         externalMenu();
@@ -27,9 +27,8 @@ public class Main {
                 accountGeneration(amountAccount++);
                 externalMenu();
 
-            case "2":
-                // internalMenu
-                break;
+            /*case "2":
+                internalMenu();*/
 
             case "0":
                 exit();
@@ -56,25 +55,57 @@ class Account {
 
     String cardNumberGeneration() {
         String IIN = "400000";
-        String accountNumber = "";
-        for (int i = 0; i < 10; i++) {
-            accountNumber += random.nextInt(10);
+        String accountNumber = accountNumberGeneration("");
+        while (Main.amountAccount != 1) {
+            if (uniqueCheck(IIN + accountNumber)) {
+                break;
+            } else {
+                accountNumber = accountNumberGeneration("");
+            }
         }
         return IIN + accountNumber;
     }
 
+    String accountNumberGeneration(String accountNumber) {
+        String tempAccountNumber = accountNumber;
+        for (int i = 0; i < 10; i++) {
+            tempAccountNumber += random.nextInt(10);
+        }
+        return tempAccountNumber;
+    }
+
+    boolean uniqueCheck(String suspect) {
+        boolean unique = true;
+        for (int i = 0; i < Main.amountAccount - 1; i++) {
+            if (Main.table[i].cardNumber.equals(suspect)) {
+                unique = false;
+            }
+        }
+        return  unique;
+    }
 
     String cardPinGeneration() {
         int tempPin = random.nextInt(10_000);
 
-        if (tempPin < 10) {
-            return "000" + tempPin;
-        } else if (tempPin < 100) {
-            return "00" + tempPin;
-        } else if (tempPin < 1_000){
-            return "0" + tempPin;
-        } else {
+        if (tempPin >= 1_000) {
             return String.valueOf(tempPin);
+
+        } else if (tempPin >= 100) {
+            return addZero(1) + tempPin;
+
+        } else if (tempPin >= 10) {
+            return addZero(2) + tempPin;
+
+        } else {
+            return addZero(3) + tempPin;
         }
+    }
+
+    String addZero(int amountZero) {
+        String tempZero = "";
+        for (; amountZero > 0; amountZero--) {
+            tempZero += 0;
+        }
+        return tempZero;
     }
 }

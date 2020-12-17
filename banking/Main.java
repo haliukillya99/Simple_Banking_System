@@ -87,6 +87,7 @@ public class Main {
                 internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
 
             case "2":
+                // logOut();
                 externalMenu();
 
             case "0":

@@ -9,7 +9,7 @@ public class Main {
     public static Scanner scanner = new Scanner(System.in);
     private static String action;
     protected static int amountAccount = 0;
-    protected static Account[] table = new Account[10];
+    protected static Account[] table = new Account[50];
 
     public static void main(String[] args) {
         externalMenu();
@@ -120,24 +120,54 @@ class Account {
     private String cardNumberGeneration() {
         String IIN = "400000";
         String accountNumber = accountNumberGeneration("");
+        String checkDigit = checkDigitLunaGeneration(IIN + accountNumber);
         while (Main.amountAccount != 1) {
 
-            if (uniqueCheck(IIN + accountNumber)) {
+            if (uniqueCheck(IIN + accountNumber + checkDigit)) {
                 break;
 
             } else {
                 accountNumber = accountNumberGeneration("");
+                checkDigit = checkDigitLunaGeneration(IIN + accountNumber);
             }
         }
-        return IIN + accountNumber;
+        return IIN + accountNumber + checkDigit;
     }
 
     private String accountNumberGeneration(String accountNumber) {
         String tempAccountNumber = accountNumber;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 9; i++) {
             tempAccountNumber += random.nextInt(10);
         }
         return tempAccountNumber;
+    }
+
+    private String checkDigitLunaGeneration(String first15DigitCardNumber) {
+        int sum = 0;
+        for (int i = 0; i < first15DigitCardNumber.length(); i++) {
+
+            if (i % 2 == 0) {
+                int temp = (parseSpecStrElemToInt(first15DigitCardNumber, i) * 2);
+
+                if (temp > 9 ) {
+                    temp -= 9;
+                }
+                sum += temp;
+
+            } else {
+                sum += parseSpecStrElemToInt(first15DigitCardNumber, i);
+            }
+        }
+
+        int coefficient10 = 10;
+        while (coefficient10 <= sum) {
+            coefficient10 += 10;
+        }
+        return String.valueOf(coefficient10 - sum);
+    }
+
+    private int parseSpecStrElemToInt(String inputString, int element) {
+        return Integer.parseInt(String.valueOf(inputString.charAt(element)));
     }
 
     private boolean uniqueCheck(String suspect) {

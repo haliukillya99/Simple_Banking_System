@@ -87,7 +87,7 @@ public class Main {
                 internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
 
             case "2":
-                // logOut();
+                logOut(currentId, currentUserBalance);
                 externalMenu();
 
             case "0":
@@ -96,6 +96,11 @@ public class Main {
             default:
                 internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
         }
+    }
+
+    private static void logOut(int id, double balance) {
+        table[id].balance = balance;
+        System.out.println("You have successfully logged out!");
     }
 
     private static void exit(){
@@ -160,7 +165,7 @@ class Account {
         }
 
         int coefficient10 = 10;
-        while (coefficient10 <= sum) {
+        while (coefficient10 < sum) {
             coefficient10 += 10;
         }
         return String.valueOf(coefficient10 - sum);

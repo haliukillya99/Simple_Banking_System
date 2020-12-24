@@ -3,6 +3,8 @@ package banking;
 import java.util.Scanner;
 import java.util.Random;
 import java.lang.*;
+import java.sql.*;
+import org.sqlite.SQLiteDataSource;
 
 public class Main {
 
@@ -12,7 +14,8 @@ public class Main {
     protected static Account[] table = new Account[50];
 
     public static void main(String[] args) {
-        externalMenu();
+        ConnectToDB.db();
+        //externalMenu();
     }
 
     private static void externalMenu() {
@@ -223,5 +226,24 @@ class User {
         this.userCard = userCard;
         this.userPin = userPin;
         this.userBalance = userBalance;
+    }
+}
+
+class ConnectToDB {
+
+    protected static void db(){
+
+        String url = "jdbc:sqlite:db.s3db";
+
+        SQLiteDataSource dataSource = new SQLiteDataSource();
+        dataSource.setUrl(url);
+
+        try (Connection connection = dataSource.getConnection()) {
+            if (connection.isValid(5)) {
+                System.out.println("Connection is valid.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

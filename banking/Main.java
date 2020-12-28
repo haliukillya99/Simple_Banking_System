@@ -18,8 +18,9 @@ public class Main {
 
         if (args[0].equals("-fileName")) {
             database.connection(args[1]);
+            database.selectQueryBody("count","SELECT COUNT() FROM card;");
         }
-        //externalMenu();
+        externalMenu();
     }
 
     private static void externalMenu() {
@@ -171,7 +172,7 @@ class Account {
             }
         }
 
-        int coefficient10 = 10;
+        int coefficient10 = 0;
         while (coefficient10 < sum) {
             coefficient10 += 10;
         }
@@ -184,12 +185,17 @@ class Account {
 
     private boolean uniqueCheck(String suspect) {
         boolean unique = true;
-        for (int i = 0; i < Main.amountAccount - 1; i++) {
-            if (Main.table[i].cardNumber.equals(suspect)) {
-                unique = false;
-                break;
-            }
+
+        String query = "SELECT COUNT() " +
+                        "FROM card " +
+                        "WHERE number = " + suspect + ";";
+
+        String result = Main.database.selectQueryBodyReturnValue("uniqueCheck", query);
+
+        if (!result.equals("0")) {
+            unique = false;
         }
+
         return  unique;
     }
 
@@ -233,59 +239,6 @@ class User {
     }
 }
 
-/*class ConnectToDB {
-
-    protected static void db(){
-
-        String url = "jdbc:sqlite:db.s3db";
-
-        SQLiteDataSource dataSource = new SQLiteDataSource();
-        dataSource.setUrl(url);
-
-        try (Connection connection = dataSource.getConnection()) {
-
-            if (connection.isValid(5)) {
-                System.out.println("Connection is valid.");
-            }
-
-
-            try (Statement statement = connection.createStatement()) {
-
-                int i = statement.executeUpdate("CREATE TABLE IF NOT EXISTS CAR1(" +
-                                            "id INTEGER PRIMARY KEY," +
-                                            "number TEXT," +
-                                            "pin TEXT," +
-                                            "balance INTEGER DEFAULT 0);");
-
-                Random rand = new Random();
-                i = statement.executeUpdate("INSERT INTO CAR1 VALUES (" + rand.nextInt(100) + ", '4916241266309611', '" + rand.nextInt(10000) +"', 0);");
-
-
-                try (ResultSet bank = statement.executeQuery("SELECT * FROM CAR1")) {
-                    while (bank.next()) {
-                        // Retrieve column values
-                        int id = bank.getInt("id");
-                        String number = bank.getString("number");
-                        String pin = bank.getString("pin");
-                        int balance = bank.getInt("balance");
-
-                        System.out.printf("id %d%n", id);
-                        System.out.printf("number: %s%n", number);
-                        System.out.printf("pin: %s%n", pin);
-                        System.out.printf("balance %d%n", balance);
-                    }
-                }
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-}*/
-
 class Database {
 
     protected Connection connection;
@@ -315,7 +268,7 @@ class Database {
         }
     }
 
-    private void checkNeedToCreateTable() {
+    protected void checkNeedToCreateTable() {
         String query = "CREATE TABLE IF NOT EXISTS card(" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "number TEXT, " +
@@ -328,41 +281,45 @@ class Database {
     protected void queryBody(String actionType, String readyQuery) {
         try {
             if (checkConnection()) {
-
-                switch (actionType) {
-
-                    case "create":
-                    case "insert":
-                    case "update":
-                    case "delete":
-                        Statement statement = connection.createStatement();
-                        statement.executeUpdate(readyQuery);
-                        break;
-
-                    case "select":
-                        selectQueryBody(readyQuery);
-                        break;
-                }
+                Statement statement = connection.createStatement();
+                statement.executeUpdate(readyQuery);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    protected void selectQueryBody(String query) {
+    protected void selectQueryBody(String actionType, String query) {
         try {
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(query);
 
-            while(resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String number = resultSet.getString("number");
-                String pin = resultSet.getString("pin");
-                int balance = resultSet.getInt("balance");
+            switch (actionType) {
+                case "count":
+                    Main.amountAccount = resultSet.getInt("COUNT()");
+                    break;
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    protected String selectQueryBodyReturnValue(String actionType, String query) {
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+
+            switch (actionType) {
+                case "uniqueCheck":
+                    if (resultSet.getInt("COUNT()") == 0) {
+                        return "0";
+                    } else {
+                        return "false";
+                    }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

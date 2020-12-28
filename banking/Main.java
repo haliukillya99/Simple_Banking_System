@@ -12,9 +12,13 @@ public class Main {
     private static String action;
     protected static int amountAccount = 0;
     protected static Account[] table = new Account[50];
+    protected static Database database = new Database();
 
     public static void main(String[] args) {
-        ConnectToDB.db();
+
+        if (args[0].equals("-fileName")) {
+            database.connection(args[1]);
+        }
         //externalMenu();
     }
 
@@ -229,7 +233,7 @@ class User {
     }
 }
 
-class ConnectToDB {
+/*class ConnectToDB {
 
     protected static void db(){
 
@@ -239,8 +243,94 @@ class ConnectToDB {
         dataSource.setUrl(url);
 
         try (Connection connection = dataSource.getConnection()) {
+
             if (connection.isValid(5)) {
                 System.out.println("Connection is valid.");
+            }
+
+
+            try (Statement statement = connection.createStatement()) {
+
+                int i = statement.executeUpdate("CREATE TABLE IF NOT EXISTS CAR1(" +
+                                            "id INTEGER PRIMARY KEY," +
+                                            "number TEXT," +
+                                            "pin TEXT," +
+                                            "balance INTEGER DEFAULT 0);");
+
+                Random rand = new Random();
+                i = statement.executeUpdate("INSERT INTO CAR1 VALUES (" + rand.nextInt(100) + ", '4916241266309611', '" + rand.nextInt(10000) +"', 0);");
+
+
+                try (ResultSet bank = statement.executeQuery("SELECT * FROM CAR1")) {
+                    while (bank.next()) {
+                        // Retrieve column values
+                        int id = bank.getInt("id");
+                        String number = bank.getString("number");
+                        String pin = bank.getString("pin");
+                        int balance = bank.getInt("balance");
+
+                        System.out.printf("id %d%n", id);
+                        System.out.printf("number: %s%n", number);
+                        System.out.printf("pin: %s%n", pin);
+                        System.out.printf("balance %d%n", balance);
+                    }
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}*/
+
+class Database {
+
+    protected Connection connection;
+
+    protected void connection(String dbName) {
+
+        SQLiteDataSource dataSource = new SQLiteDataSource();
+        dataSource.setUrl("jdbc:sqlite:" + dbName);
+
+        try {
+            connection = dataSource.getConnection();
+
+            if(checkConnection()) {
+                checkNeedToCreateTable();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected boolean checkConnection() {
+        try {
+            return connection.isValid(5);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private void checkNeedToCreateTable() {
+        String query = "CREATE TABLE IF NOT EXISTS card(" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "number TEXT, " +
+                        "pin TEXT, " +
+                        "balance INTEGER DEFAULT 0);";
+
+        queryBody(query);
+    }
+
+    protected void queryBody(String readyQuery) {
+        try {
+            if (checkConnection()) {
+                Statement statement = connection.createStatement();
+
+                statement.executeUpdate(readyQuery);
             }
         } catch (SQLException e) {
             e.printStackTrace();

@@ -322,16 +322,45 @@ class Database {
                         "pin TEXT, " +
                         "balance INTEGER DEFAULT 0);";
 
-        queryBody(query);
+        queryBody("create", query);
     }
 
-    protected void queryBody(String readyQuery) {
+    protected void queryBody(String actionType, String readyQuery) {
         try {
             if (checkConnection()) {
-                Statement statement = connection.createStatement();
 
-                statement.executeUpdate(readyQuery);
+                switch (actionType) {
+
+                    case "create":
+                    case "insert":
+                    case "update":
+                    case "delete":
+                        Statement statement = connection.createStatement();
+                        statement.executeUpdate(readyQuery);
+                        break;
+
+                    case "select":
+                        selectQueryBody(readyQuery);
+                        break;
+                }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void selectQueryBody(String query) {
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(query);
+
+            while(resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String number = resultSet.getString("number");
+                String pin = resultSet.getString("pin");
+                int balance = resultSet.getInt("balance");
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }

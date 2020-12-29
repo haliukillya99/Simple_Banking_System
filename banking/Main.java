@@ -11,7 +11,7 @@ public class Main {
     public static Scanner scanner = new Scanner(System.in);
     private static String action;
     protected static int amountAccount = 0;
-    protected static Account[] table = new Account[50];
+    protected static Account table;
     protected static Database database = new Database();
 
     public static void main(String[] args) {
@@ -47,8 +47,13 @@ public class Main {
     }
 
     private static void accountGeneration(int index) {
-        table[index] = new Account();
-        System.out.println(table[index].showInfo());
+        table = new Account();
+        System.out.println(table.showInfo());
+
+        String query = "INSERT INTO card (number, pin) " +
+                "VALUES ('" + table.cardNumber + "', '" + table.cardPin + "');";
+
+        Main.database.queryBody(query);
     }
 
     private static void logIn() {
@@ -64,16 +69,22 @@ public class Main {
 
     private static void userVerification(String currentCard, String currentPin) {
         boolean correctUserInputData = false;
-        for (int i = 0; i < Main.amountAccount; i++) {
 
-            if (Main.table[i].cardNumber.equals(currentCard) && Main.table[i].cardPin.equals(currentPin)) {
-                User user = new User(i, Main.table[i].cardNumber, Main.table[i].cardPin, Main.table[i].balance);
+        String query = "SELECT " +
+                        "COUNT(), id, number, pin, balance " +
+                        "FROM card " +
+                        "WHERE " +
+                        "(number = '" + currentCard + "' AND pin = '" + currentPin + "');";
 
-                correctUserInputData = true;
-                System.out.println("You have successfully logged in!");
+        String result = Main.database.selectQueryBody("userVerification", query);
 
-                internalMenu(user.id, user.userCard, user.userPin, user.userBalance);
-            }
+        if (!result.equals("0")) {
+            User user = new User(Integer.parseInt(result), Main.table.cardNumber, Main.table.cardPin, Main.table.balance);
+
+            correctUserInputData = true;
+            System.out.println("You have successfully logged in!");
+
+            internalMenu(user.id, user.userCard, user.userPin, user.userBalance);
         }
 
         if (!correctUserInputData) {
@@ -107,11 +118,15 @@ public class Main {
     }
 
     private static void logOut(int id, double balance) {
-        table[id].balance = balance;
+        String query = "UPDATE card " +
+                        "SET balance = " + balance + " " +
+                        "WHERE id = " + id + ";";
+        database.queryBody(query);
         System.out.println("You have successfully logged out!");
     }
 
     private static void exit(){
+        database.connectionEnd();
         System.exit(0);
     }
 }
@@ -190,7 +205,7 @@ class Account {
                         "FROM card " +
                         "WHERE number = " + suspect + ";";
 
-        String result = Main.database.selectQueryBodyReturnValue("uniqueCheck", query);
+        String result = Main.database.selectQueryBody("uniqueCheck", query);
 
         if (!result.equals("0")) {
             unique = false;
@@ -275,10 +290,10 @@ class Database {
                         "pin TEXT, " +
                         "balance INTEGER DEFAULT 0);";
 
-        queryBody("create", query);
+        queryBody(query);
     }
 
-    protected void queryBody(String actionType, String readyQuery) {
+    protected void queryBody(String readyQuery) {
         try {
             if (checkConnection()) {
                 Statement statement = connection.createStatement();
@@ -289,7 +304,7 @@ class Database {
         }
     }
 
-    protected void selectQueryBody(String actionType, String query) {
+    protected String selectQueryBody(String actionType, String query) {
         try {
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(query);
@@ -298,28 +313,40 @@ class Database {
                 case "count":
                     Main.amountAccount = resultSet.getInt("COUNT()");
                     break;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
 
-    protected String selectQueryBodyReturnValue(String actionType, String query) {
-        try {
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
-
-            switch (actionType) {
                 case "uniqueCheck":
                     if (resultSet.getInt("COUNT()") == 0) {
                         return "0";
                     } else {
                         return "false";
                     }
+
+                case "userVerification":
+                    try {
+                        if (resultSet.getInt("COUNT()") == 1) {
+                            Main.table = new Account();
+                            Main.table.cardNumber = resultSet.getString("number");
+                            Main.table.cardPin = resultSet.getString("pin");
+                            Main.table.balance = resultSet.getInt("balance");
+                            return resultSet.getString("id");
+                        } else {
+                            return "0";
+                        }
+                    } catch (SQLException e) {
+                        selectQueryBody("userVerification", query);
+                    }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return "";
+    }
+
+    protected void connectionEnd() {
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

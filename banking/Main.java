@@ -16,7 +16,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        if (args[0].equals("-fileName")) {
+        if (args[0].toLowerCase().equals("-filename")) {
             database.connection(args[1]);
             database.selectQueryBody("count","SELECT COUNT() FROM card;");
         }
@@ -89,7 +89,8 @@ public class Main {
 
         if (!correctUserInputData) {
             System.out.println("Wrong card number or PIN!");
-            logIn();
+            //logIn();
+            externalMenu();
         }
     }
 
@@ -261,7 +262,9 @@ class Database {
     protected void connection(String dbName) {
 
         SQLiteDataSource dataSource = new SQLiteDataSource();
-        dataSource.setUrl("jdbc:sqlite:" + dbName);
+        dataSource.setUrl("jdbc:sqlite:" +
+                "E:\\Intellij Idea Projects\\Simple Banking System\\Simple Banking System\\task\\" +
+                dbName);
 
         try {
             connection = dataSource.getConnection();

@@ -10,7 +10,7 @@ public class Main {
 
     public static Scanner scanner = new Scanner(System.in);
     private static String action;
-    protected static int amountAccount = 0;
+    protected static int amountAccount;
     protected static Account table;
     protected static Database database = new Database();
 
@@ -18,7 +18,7 @@ public class Main {
 
         if (args[0].toLowerCase().equals("-filename")) {
             database.connection(args[1]);
-            database.selectQueryBody("count","SELECT COUNT() FROM card;");
+            amountAccount = Integer.parseInt(database.selectQueryBody("count","SELECT COUNT() FROM card;"));
         }
         externalMenu();
     }
@@ -94,10 +94,13 @@ public class Main {
         }
     }
 
-    private static void internalMenu(int currentId, String currentUserCard, String currentUserPin, double currentUserBalance) {
+    private static void internalMenu(int currentId, String currentUserCard, String currentUserPin, int currentUserBalance) {
 
         System.out.println("1. Balance\n" +
-                "2. Log out\n" +
+                "2. Add income\n" +
+                "3. Do transfer\n" +
+                "4. Close account\n" +
+                "5. Log out\n" +
                 "0. Exit");
         action = scanner.nextLine();
 
@@ -107,18 +110,87 @@ public class Main {
                 internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
 
             case "2":
+                System.out.println("Enter income: ");
+                int cashAdditions = scanner.nextInt();
+
+                currentUserBalance += cashAdditions;
+                String queryUpdate = "UPDATE card " +
+                        "SET balance = " + currentUserBalance + " " +
+                        "WHERE id = " + currentId + ";";
+                database.queryBody(queryUpdate);
+
+                System.out.println("Income was added!");
+                internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+
+            case "3":
+                System.out.println("Transfer\n" +
+                                    "Enter card number:");
+                String cardNumberForTransfer = scanner.nextLine();
+
+                if (cardNumberForTransfer.equals(currentUserCard)) {
+                    System.out.println("You can't transfer money to the same account!");
+                    internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+                }
+
+                String result = checkCardNumberReceiver(cardNumberForTransfer);
+                if (!result.equals("true")) {
+                    System.out.println(result);
+                    internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+                }
+
+                System.out.println("Enter how much money you want to transfer:");
+                int moneyForTransfer = scanner.nextInt();
+                if (moneyForTransfer <= currentUserBalance) {
+
+                    Transaction transaction = new Transaction(currentUserCard, cardNumberForTransfer, moneyForTransfer);
+                    database.makeTransaction(transaction.senderAccountTransaction, transaction.receiverAccountTransaction, transaction.sender, transaction.receiver, transaction.money);
+
+                    System.out.println("Success!");
+
+                } else {
+                    System.out.println("Not enough money!");
+                }
+                internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+
+            case "4":
+                String queryDelete = "DELETE FROM card " +
+                        "WHERE id = " + currentId + ";";
+                database.queryBody(queryDelete);
+
+                System.out.println("The account has been closed!");
+                externalMenu();
+
+            case "5":
                 logOut(currentId, currentUserBalance);
                 externalMenu();
 
             case "0":
                 exit();
 
+            /*
             default:
                 internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+             */
         }
     }
 
-    private static void logOut(int id, double balance) {
+    private static String checkCardNumberReceiver(String cardNumberReceiver) {
+
+        String tempFirst15DigitCardNumber = cardNumberReceiver.substring(0, cardNumberReceiver.length() - 1);
+        String last16DigitCardNumber = new Account().checkDigitLunaGeneration(tempFirst15DigitCardNumber);
+        if (!cardNumberReceiver.equals(tempFirst15DigitCardNumber + last16DigitCardNumber)) {
+            return "Probably you made mistake in the card number. Please try again!";
+        }
+
+        String query = "SELECT COUNT() " + "FROM card " + "WHERE number = " + cardNumberReceiver + ";";
+        if (database.selectQueryBody("count", query).equals("0")){
+            return "Such a card does not exist.";
+        }
+
+        return "true";
+    }
+
+    private static void logOut(int id, int balance) {
         String query = "UPDATE card " +
                         "SET balance = " + balance + " " +
                         "WHERE id = " + id + ";";
@@ -136,7 +208,7 @@ class Account {
     protected Random random = new Random();
     protected String cardNumber = cardNumberGeneration();
     protected String cardPin = cardPinGeneration();
-    protected double balance = 0;
+    protected int balance = 0;
 
     protected String showInfo() {
         return "Your card has been created\n"
@@ -171,7 +243,7 @@ class Account {
         return tempAccountNumber;
     }
 
-    private String checkDigitLunaGeneration(String first15DigitCardNumber) {
+    protected String checkDigitLunaGeneration(String first15DigitCardNumber) {
         int sum = 0;
         for (int i = 0; i < first15DigitCardNumber.length(); i++) {
 
@@ -245,9 +317,9 @@ class User {
     protected int id;
     protected String userCard;
     protected String userPin;
-    protected double userBalance;
+    protected int userBalance;
 
-    protected User(int id, String userCard, String userPin, double userBalance) {
+    protected User(int id, String userCard, String userPin, int userBalance) {
         this.id = id;
         this.userCard = userCard;
         this.userPin = userPin;
@@ -257,13 +329,13 @@ class User {
 
 class Database {
 
-    protected Connection connection;
+    private Connection connection;
 
     protected void connection(String dbName) {
 
         SQLiteDataSource dataSource = new SQLiteDataSource();
         dataSource.setUrl("jdbc:sqlite:" +
-                "E:\\Intellij Idea Projects\\Simple Banking System\\Simple Banking System\\task\\" +
+                "E:\\Intellij Idea Projects\\Simple Banking System\\Simple Banking System\\task\\" + // it's optional, & used only for Gradle tests
                 dbName);
 
         try {
@@ -277,7 +349,7 @@ class Database {
         }
     }
 
-    protected boolean checkConnection() {
+    private boolean checkConnection() {
         try {
             return connection.isValid(5);
         } catch (SQLException e) {
@@ -286,7 +358,7 @@ class Database {
         }
     }
 
-    protected void checkNeedToCreateTable() {
+    private void checkNeedToCreateTable() {
         String query = "CREATE TABLE IF NOT EXISTS card(" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "number TEXT, " +
@@ -314,8 +386,7 @@ class Database {
 
             switch (actionType) {
                 case "count":
-                    Main.amountAccount = resultSet.getInt("COUNT()");
-                    break;
+                    return String.valueOf(resultSet.getInt("COUNT()"));
 
                 case "uniqueCheck":
                     if (resultSet.getInt("COUNT()") == 0) {
@@ -345,11 +416,60 @@ class Database {
         return "";
     }
 
+    protected void makeTransaction(String queryForFirstTransaction, String queryForSecondTransaction, String whoSend, String whoReceive, int howMuch) {
+        try {
+            connection.setAutoCommit(false);
+
+            PreparedStatement FirstTransaction = connection.prepareStatement(queryForFirstTransaction);
+            FirstTransaction.setInt(1, howMuch);
+            FirstTransaction.setString(2, whoSend);
+            FirstTransaction.executeUpdate();
+
+            PreparedStatement SecondTransaction = connection.prepareStatement(queryForSecondTransaction);
+            SecondTransaction.setInt(1, howMuch);
+            SecondTransaction.setString(2, whoReceive);
+            SecondTransaction.executeUpdate();
+
+            connection.commit();
+
+        } catch (SQLException e) {
+            try {
+                if (checkConnection()) {
+                    connection.rollback();
+                }
+            } catch (SQLException exception) {
+                exception.printStackTrace();
+            }
+            e.printStackTrace();
+        }
+    }
+
     protected void connectionEnd() {
         try {
             connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+}
+
+class Transaction {
+
+    protected String sender;
+    protected String receiver;
+    protected int money;
+
+    protected String senderAccountTransaction = "UPDATE card " +
+                                        "SET balance = balance - ? " +
+                                        "WHERE number = ?;";
+
+    protected String receiverAccountTransaction = "UPDATE card " +
+                                        "SET balance = balance + ? " +
+                                        "WHERE number = ?;";
+
+    Transaction (String sender, String receiver, int money) {
+        this.sender = sender;
+        this.receiver = receiver;
+        this.money = money;
     }
 }

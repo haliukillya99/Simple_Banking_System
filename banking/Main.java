@@ -95,6 +95,11 @@ public class Main {
     }
 
     private static void internalMenu(int currentId, String currentUserCard, String currentUserPin, int currentUserBalance) {
+        showInternalMenu();
+        runActionInMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+    }
+
+    private static void showInternalMenu(){
 
         System.out.println("1. Balance\n" +
                 "2. Add income\n" +
@@ -102,64 +107,22 @@ public class Main {
                 "4. Close account\n" +
                 "5. Log out\n" +
                 "0. Exit");
-        action = scanner.nextLine();
+    }
 
-        switch (action) {
+    private static void runActionInMenu(int currentId, String currentUserCard, String currentUserPin, int currentUserBalance) {
+        switch (scanner.nextLine()) {
+
             case "1":
-                System.out.println("Balance: " + currentUserBalance);
-                internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+                showBalance(currentId, currentUserCard, currentUserPin, currentUserBalance);
 
             case "2":
-                System.out.println("Enter income: ");
-                int cashAdditions = scanner.nextInt();
-
-                currentUserBalance += cashAdditions;
-                String queryUpdate = "UPDATE card " +
-                        "SET balance = " + currentUserBalance + " " +
-                        "WHERE id = " + currentId + ";";
-                database.queryBody(queryUpdate);
-
-                System.out.println("Income was added!");
-                internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+                addCashToAccount(currentId, currentUserCard, currentUserPin, currentUserBalance);
 
             case "3":
-                System.out.println("Transfer\n" +
-                                    "Enter card number:");
-                String cardNumberForTransfer = scanner.nextLine();
-
-                if (cardNumberForTransfer.equals(currentUserCard)) {
-                    System.out.println("You can't transfer money to the same account!");
-                    internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
-                }
-
-                String result = checkCardNumberReceiver(cardNumberForTransfer);
-                if (!result.equals("true")) {
-                    System.out.println(result);
-                    internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
-                }
-
-                System.out.println("Enter how much money you want to transfer:");
-                int moneyForTransfer = scanner.nextInt();
-                if (moneyForTransfer <= currentUserBalance) {
-
-                    Transaction transaction = new Transaction(currentUserCard, cardNumberForTransfer, moneyForTransfer);
-                    transaction.runTransaction();
-
-                    System.out.println("Success!");
-
-                } else {
-                    System.out.println("Not enough money!");
-                }
-                internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+                moneyTransfer(currentId, currentUserCard, currentUserPin, currentUserBalance);
 
             case "4":
-                String queryDelete = "DELETE FROM card " +
-                        "WHERE id = " + currentId + ";";
-                database.queryBody(queryDelete);
-
-                amountAccount--;
-                System.out.println("The account has been closed!");
-                externalMenu();
+                deleteUser(currentId);
 
             case "5":
                 logOut(currentId, currentUserBalance);
@@ -169,10 +132,87 @@ public class Main {
                 logOut(currentId, currentUserBalance);
                 exit();
 
-            /*
+            case "":
+                runActionInMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
+
             default:
                 internalMenu(currentId, currentUserCard, currentUserPin, currentUserBalance);
-             */
+        }
+    }
+
+    private static void showBalance(int tempCurrentId, String tempCurrentUserCard, String tempCurrentUserPin, int tempCurrentUserBalance) {
+
+        System.out.println("Balance: " + tempCurrentUserBalance);
+        internalMenu(tempCurrentId, tempCurrentUserCard, tempCurrentUserPin, tempCurrentUserBalance);
+    }
+
+    private static void addCashToAccount(int tempCurrentId, String tempCurrentUserCard, String tempCurrentUserPin, int tempCurrentUserBalance){
+
+        System.out.println("Enter income: ");
+        int cashAdditions = scanner.nextInt();
+
+        tempCurrentUserBalance += cashAdditions;
+        String queryUpdate = "UPDATE card " +
+                "SET balance = " + tempCurrentUserBalance + " " +
+                "WHERE id = " + tempCurrentId + ";";
+        database.queryBody(queryUpdate);
+
+        System.out.println("Income was added!");
+
+        internalMenu(tempCurrentId, tempCurrentUserCard, tempCurrentUserPin, tempCurrentUserBalance);
+    }
+
+    private static void moneyTransfer(int tempCurrentId, String tempCurrentUserCard, String tempCurrentUserPin, int tempCurrentUserBalance) {
+
+        String cardNumberForTransfer = askCardNumberWhoReceive();
+        String permission = mayIMakeTransaction(tempCurrentUserCard, cardNumberForTransfer);
+
+        if (!permission.equals("true")) {
+            System.out.println(permission);
+
+        } else {
+
+            int moneyForTransfer = askCardNumberWhoMuch();
+            if (moneyForTransfer <= tempCurrentUserBalance) {
+
+                Transaction transaction = new Transaction(tempCurrentUserCard, cardNumberForTransfer, moneyForTransfer);
+                transaction.runTransaction();
+
+                System.out.println("Success!");
+            } else {
+                System.out.println("Not enough money!");
+            }
+        }
+
+        internalMenu(tempCurrentId,tempCurrentUserCard, tempCurrentUserPin, tempCurrentUserBalance);
+    }
+
+    private static String askCardNumberWhoReceive() {
+        System.out.println("Transfer\n" +
+                "Enter card number:");
+        return scanner.nextLine();
+    }
+
+    private static String mayIMakeTransaction(String tempUserCard, String tempCardNumberForTransfer){
+        String resultCheckIsSameCard = checkCardNumberSender(tempUserCard, tempCardNumberForTransfer);
+        String resultCheckIsValidAndExist = checkCardNumberReceiver(tempCardNumberForTransfer);
+
+        if (!resultCheckIsSameCard.equals("true") || !resultCheckIsValidAndExist.equals("true")) {
+            if (!resultCheckIsSameCard.equals("true")) {
+                return resultCheckIsSameCard;
+            } else {
+                return resultCheckIsValidAndExist;
+            }
+        } else {
+            return "true";
+        }
+    }
+
+    private static String checkCardNumberSender(String cardNumberSender, String cardNumberReceiver) {
+        if (cardNumberReceiver.equals(cardNumberSender)) {
+            return "You can't transfer money to the same account!";
+        } else {
+            return "true";
         }
     }
 
@@ -190,6 +230,23 @@ public class Main {
         }
 
         return "true";
+    }
+
+    private static int askCardNumberWhoMuch() {
+        System.out.println("Enter how much money you want to transfer:");
+        return scanner.nextInt();
+    }
+
+    private static void deleteUser(int id) {
+
+        String queryDelete = "DELETE FROM card " +
+                "WHERE id = " + id + ";";
+        database.queryBody(queryDelete);
+
+        amountAccount--;
+        System.out.println("The account has been closed!");
+
+        externalMenu();
     }
 
     private static void logOut(int id, int balance) {
@@ -457,15 +514,15 @@ class Database {
 
 class Transaction {
 
-    protected String sender;
-    protected String receiver;
-    protected int money;
+    private String sender;
+    private String receiver;
+    private int money;
 
-    protected String senderAccountTransaction = "UPDATE card " +
+    private String senderAccountTransaction = "UPDATE card " +
                                         "SET balance = balance - ? " +
                                         "WHERE number = ?;";
 
-    protected String receiverAccountTransaction = "UPDATE card " +
+    private String receiverAccountTransaction = "UPDATE card " +
                                         "SET balance = balance + ? " +
                                         "WHERE number = ?;";
 

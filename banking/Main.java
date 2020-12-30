@@ -143,7 +143,7 @@ public class Main {
                 if (moneyForTransfer <= currentUserBalance) {
 
                     Transaction transaction = new Transaction(currentUserCard, cardNumberForTransfer, moneyForTransfer);
-                    database.makeTransaction(transaction.senderAccountTransaction, transaction.receiverAccountTransaction, transaction.sender, transaction.receiver, transaction.money);
+                    transaction.runTransaction();
 
                     System.out.println("Success!");
 
@@ -157,6 +157,7 @@ public class Main {
                         "WHERE id = " + currentId + ";";
                 database.queryBody(queryDelete);
 
+                amountAccount--;
                 System.out.println("The account has been closed!");
                 externalMenu();
 
@@ -165,6 +166,7 @@ public class Main {
                 externalMenu();
 
             case "0":
+                logOut(currentId, currentUserBalance);
                 exit();
 
             /*
@@ -466,6 +468,10 @@ class Transaction {
     protected String receiverAccountTransaction = "UPDATE card " +
                                         "SET balance = balance + ? " +
                                         "WHERE number = ?;";
+
+    protected void runTransaction(){
+        Main.database.makeTransaction(senderAccountTransaction, receiverAccountTransaction, sender, receiver, money);
+    }
 
     Transaction (String sender, String receiver, int money) {
         this.sender = sender;
